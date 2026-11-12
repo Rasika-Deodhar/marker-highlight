@@ -80,10 +80,19 @@ test('every substantial paragraph gets at least one highlight', () => {
   });
 });
 
-test('adjacent highlights merge and absorb a single function word', () => {
+test('a function word between two highlights is underlined so the phrase reads whole', () => {
   const input = ['Theory of mind matters. Theory of mind develops early. Children acquire theory of mind by age 4.'];
-  const marked = highlightedText(input, analyze(input, { density: 0.4 }));
-  assert.ok(marked.some((p) => /theory of mind/i.test(p)), marked.join(' | '));
+  const result = analyze(input, { density: 0.4 });
+  assert.ok(highlightedText(input, result).some((p) => /^theory$/i.test(p)));
+  assert.ok(result.blocks[0].context.some(([s, e]) => input[0].slice(s, e) === 'of'));
+  assert.deepEqual(analyze(input, { density: 0.4, context: false }).blocks[0].context, []);
+});
+
+test('short multi-word terms are highlighted whole or not at all', () => {
+  const input = ['Patients with stomach ulcers should avoid it. Stomach ulcers bleed. Black stools are a warning sign of stomach ulcers.'];
+  for (const phrase of highlightedText(input, analyze(input, { density: 0.3 }))) {
+    assert.ok(!/^(stomach|ulcers|black|stools)$/i.test(phrase), phrase);
+  }
 });
 
 test('ranges are sorted, non-overlapping and inside the block', () => {
@@ -100,6 +109,6 @@ test('ranges are sorted, non-overlapping and inside the block', () => {
 
 test('is deterministic and tolerates empty input', () => {
   assert.deepEqual(analyze(ARTICLE), analyze(ARTICLE));
-  assert.deepEqual(analyze([]).stats, { words: 0, highlighted: 0, density: 0.2 });
-  assert.deepEqual(analyze(['', '   ']).blocks, [{ ranges: [] }, { ranges: [] }]);
+  assert.deepEqual(analyze([]).stats, { words: 0, highlighted: 0, context: 0, density: 0.2 });
+  assert.deepEqual(analyze(['', '   ']).blocks, [{ ranges: [], context: [] }, { ranges: [], context: [] }]);
 });

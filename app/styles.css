@@ -152,6 +152,16 @@ main { max-width: 68ch; margin: 0 auto; padding: 20px 16px 96px; font-size: 19px
   text-decoration: underline 0.14em var(--text);
   text-underline-offset: 0.18em;
 }
+/* Tier 2, context words (not, only, but, in-between words): always an underline, lighter
+   than the marker so it supports the highlights without competing with them. */
+.reader ::highlight(marker-highlight-context) {
+  color: var(--text);
+  text-decoration: underline 0.09em var(--text);
+  text-underline-offset: 0.2em;
+}
+.reader[data-mark='underline'] ::highlight(marker-highlight-context) {
+  text-decoration: underline dotted 0.09em var(--text);
+}
 /* Focus mode: everything that is not marked recedes, but stays legible. Headings keep
    full strength because they are the page's own signposts. */
 .reader.is-on[data-dim='true'] :is(p, li, blockquote) { color: var(--muted); }
