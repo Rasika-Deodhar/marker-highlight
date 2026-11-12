@@ -5,7 +5,9 @@ whether to move on.
 
 ## Phase 0: the app (this release, v0.1)
 
-- Paste or open text; important words are highlighted in place.
+- Paste or open text; important words are highlighted in place, and the words that
+  protect their meaning (negations, qualifiers, in-between words) are underlined.
+- Evaluation set with an independent meaning audit, run by the tests.
 - On/off switch, amount slider, marker and underline styles, four colours, dim mode,
   keyboard shortcuts, light and dark themes.
 - Engine with unit tests; research, architecture and decisions documented.
@@ -14,12 +16,14 @@ whether to move on.
 
 The product is only as good as what it marks, and that is currently unmeasured.
 
-- **Evaluation set.** 30–50 texts of different kinds (news, explainer, paper abstract,
-  documentation, email), each with human-marked key phrases. Report precision and recall
-  of the engine against them, and track the numbers in CI.
+- **Independent evaluation set.** Today's set ([EVALUATION.md](EVALUATION.md)) is six
+  texts annotated by the engine's author. Grow it to 30–50 texts of different kinds,
+  annotated by other people, with a held-out portion never used for tuning. Report
+  precision as well as recall, and run it in CI.
 - **Tune weights** against that set instead of by inspection.
-- **Phrase quality.** Prefer complete noun phrases; keep negations attached ("did not
-  improve") so a highlight never reverses the sentence's meaning.
+- **Phrase quality.** Use part-of-speech information so phrases are true noun phrases and
+  single-use key terms are found. Extend negation scope beyond four words and handle
+  double negatives.
 - **Languages.** `Intl.Segmenter` tokenising; stopword and common-word lists for the next
   three languages by demand; detect language from the text.
 - **More inputs.** Paste rich text with its headings and lists preserved; open PDF and
@@ -27,8 +31,8 @@ The product is only as good as what it marks, and that is currently unmeasured.
 - **Automated browser tests** for the DOM adapter and the UI.
 - Installable offline (PWA manifest and service worker).
 
-*Exit test:* on the evaluation set, at 20% density, at least 70% of human-marked key
-phrases are touched by a highlight.
+*Exit test:* on the held-out set, at 20% density, at least 90% of key words are fully
+highlighted (today: 79% on the author-annotated set) with zero meaning-audit findings.
 
 ## Phase 2: the browser extension
 

@@ -7,7 +7,8 @@
 
 import { analyze } from '../core/analyze.js';
 
-export const HIGHLIGHT_NAME = 'marker-highlight';
+export const HIGHLIGHT_NAME = 'marker-highlight'; // tier 1: the important words
+export const CONTEXT_NAME = 'marker-highlight-context'; // tier 2: words that keep them truthful
 
 const SKIP = new Set([
   'SCRIPT', 'STYLE', 'NOSCRIPT', 'TEMPLATE', 'CODE', 'PRE', 'KBD', 'SAMP', 'TEXTAREA', 'INPUT',
@@ -96,14 +97,18 @@ export function createHighlighter(root) {
       const blocks = collectBlocks(root);
       const result = analyze(blocks, options);
       const highlight = new Highlight();
-      result.blocks.forEach(({ ranges }, i) => {
-        for (const [start, end] of ranges) highlight.add(toDomRange(blocks[i], start, end));
+      const context = new Highlight();
+      result.blocks.forEach((marks, i) => {
+        for (const [start, end] of marks.ranges) highlight.add(toDomRange(blocks[i], start, end));
+        for (const [start, end] of marks.context) context.add(toDomRange(blocks[i], start, end));
       });
       CSS.highlights.set(HIGHLIGHT_NAME, highlight);
+      CSS.highlights.set(CONTEXT_NAME, context);
       return result;
     },
     clear() {
       CSS.highlights.delete(HIGHLIGHT_NAME);
+      CSS.highlights.delete(CONTEXT_NAME);
     },
   };
 }

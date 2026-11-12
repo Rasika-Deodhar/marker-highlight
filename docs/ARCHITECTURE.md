@@ -2,7 +2,9 @@
 
 ## Goals and constraints
 
-- **Lightweight.** No framework, no dependencies, no build step. About 500 lines of source.
+- **Lightweight.** No framework, no dependencies, no build step. Under 1,000 lines of source.
+- **Faithful.** The text is never altered, and following the marks must not change what a
+  sentence says.
 - **Private.** Text is analysed where it is displayed. Nothing is sent or stored.
 - **Extension-ready.** The app is the first host; a browser extension is the second. Moving
   to the extension must not require rewriting the engine or the painting code.
@@ -22,15 +24,17 @@ flowchart TD
   end
   subgraph Core["Core engine: src/core (pure, no DOM)"]
     TOK["text.js<br/>tokens, sentences, term keys"]
-    AN["analyze.js<br/>score → select → merge"]
-    SW["stopwords.js"]
+    AN["analyze.js<br/>score → select → add context → merge"]
+    SW["stopwords.js, context-words.js"]
+    AU["audit.js<br/>independent meaning check"]
   end
   APP --> COLLECT
   EXT -.-> COLLECT
   COLLECT -->|"blocks: {text, kind}[]"| AN
   AN --> TOK
   AN --> SW
-  AN -->|"ranges per block, stats"| PAINT
+  AN -->|"marker ranges + context ranges, stats"| PAINT
+  AN -.->|"checked in tests and npm run eval"| AU
   PAINT --> APP
 ```
 
@@ -44,11 +48,14 @@ The dependency direction is strictly downward. The contract between adapter and 
 one function:
 
 ```js
-analyze(blocks: ({ text, kind?: 'body' | 'heading' } | string)[], { density, stopwords, commonWords })
-  → { blocks: { ranges: [start, end][] }[], stats: { words, highlighted, density }, keywords }
+analyze(blocks: ({ text, kind?: 'body' | 'heading' } | string)[], { density, context, stopwords, commonWords })
+  → { blocks: { ranges: [start, end][], context: [start, end][] }[],
+      stats: { words, highlighted, context, density }, keywords }
 ```
 
-Ranges are character offsets into each block's `text`. Anything that can produce blocks
+`ranges` are tier 1 (the important words, painted as marker). `context` are tier 2 (words
+that keep tier 1 truthful, painted as underline). The tiers never overlap. Both are
+character offsets into each block's `text`. Anything that can produce blocks
 and consume ranges can host the engine: a web page, a PDF text layer, an e-reader, a CLI.
 
 ## Data flow for one toggle
@@ -60,9 +67,11 @@ and consume ranges can host the engine: a web page, a PDF text layer, an e-reade
    block, and records where each text node starts within the block's text.
 3. `analyze(blocks, { density })` returns ranges.
 4. Each range is mapped back to a DOM `Range` through the offset map (binary search) and
-   added to one `Highlight` object registered as `CSS.highlights.set('marker-highlight', …)`.
-5. CSS paints it: `::highlight(marker-highlight) { background-color: … }`.
-6. Off: `CSS.highlights.delete('marker-highlight')`. The DOM was never modified.
+   added to one of two `Highlight` objects, registered as `marker-highlight` (tier 1) and
+   `marker-highlight-context` (tier 2).
+5. CSS paints them: `::highlight(marker-highlight) { background-color: … }` and
+   `::highlight(marker-highlight-context) { text-decoration: underline … }`.
+6. Off: both registrations are deleted. The DOM was never modified.
 
 ## Scoring model
 
@@ -78,24 +87,43 @@ set by inspection, not trained.
 | Spread across paragraphs | 0.15 | Topic terms recur throughout; incidental ones cluster |
 | Mid-sentence capitalisation, acronyms | 0.20 | Names of people, places, things |
 | Appears in a heading | 0.15 | The author's own importance signal |
-| Word length | 0.12 | Longer words are rarer; a stand-in for corpus rarity |
+| Inside a multi-word term | 0.06 | Words in content-word runs ("security review") tend to be subject matter (RAKE) |
+| Word length | 0.08 | Longer words are rarer; a stand-in for corpus rarity |
 | Early first mention | 0.03 | Key ideas are introduced first |
 
 Adjustments: function words (stopwords) score zero. Everyday content words ("people",
 "time", "way") are discounted by 0.55 as a substitute for corpus IDF. Numbers skip the
-formula and get a fixed 0.55, because figures are dense facts however rarely they occur.
+formula and get a fixed 0.55 (0.45 for a single digit), because figures are dense facts
+however rarely they occur. Negations, contrasts and qualifiers are excluded from tier 1;
+they belong to tier 2.
 
 **Occurrence score** (one per word on the page) = term score, scaled by how important the
 sentence is (sum of its term scores over the square root of its length), ×1.15 in a
 paragraph's first sentence, and decayed for each earlier occurrence of the same term in
-the paragraph (×0.6) and in the document (×0.85, floor 0.4).
+the paragraph (×0.6) and in the document (×0.7, floor 0.3).
 
-**Selection.** The top `density × word count` occurrences are selected. Then every body
-paragraph of 12+ words with nothing selected gets its best word. Then phrases are
-completed: a number takes the word after it ("79 percent"), and one function word between
-two selected words is absorbed ("speed and comprehension"). Adjacent selections merge into
-one range. Phrase completion can push the final share a few points above the requested
-density; the tests bound this.
+**Selection (tier 1).** Occurrences are taken in score order until `density × word count`
+words are selected. A word inside a run of two or three content words is taken with the
+whole run or not at all, so "black stools" is never reduced to "stools". Then every body
+paragraph of 12+ words with nothing selected gets its best term, and a number takes the
+word after it ("79 percent", "400 mg"). These rules can push the final share a few points
+above the requested density; the tests bound this.
+
+**Context (tier 2).** Added after selection, outside the density budget, because these
+words are not optional:
+
+1. Every negation in the text ("not", "never", "no", "without", "unless", "n't"…) is
+   marked with the auxiliary before it and the phrase it negates: "does not delete",
+   "without the prior written consent". This applies even in sentences with no highlight,
+   so no negated statement is invisible to a skimmer.
+2. In a sentence that has marks, contrast words are marked ("but", "however", "although").
+3. A qualifier ("only", "most", "few", "until", "may"…) or a negative-prefixed word
+   ("unaided", "non-fatal", "useless") directly before a marked word is marked.
+4. One or two function words stranded between marked words are marked, so phrases read
+   whole ("speed and comprehension", "risk of heart disease").
+
+The word lists live in `src/core/context-words.js`. `src/core/audit.js` re-checks rules
+1–3 on the engine's output with separate code; see [EVALUATION.md](EVALUATION.md).
 
 Each of these rules traces to a finding in [RESEARCH.md](RESEARCH.md#from-findings-to-design).
 
@@ -157,6 +185,22 @@ to `localStorage`. Input is inserted with `textContent`, so pasted markup cannot
 words with spaces. Chinese, Japanese and Thai need `Intl.Segmenter`, and every language
 needs its own stopword list; both are roadmap items and both are injectable today.
 
+**D11. Two tiers instead of one.** Statistically important words and meaning-critical
+words are different sets: "not" is never a keyword and always matters. Making negations
+tier-1 highlights would spend the sparse marker budget on function words and bury the
+real key terms; leaving them out lets the marks misstate the text. So tier 1 stays sparse
+and budgeted, and tier 2 is a quieter underline that is unbudgeted and rule-driven. Cost:
+on text dense with negations and conditions (legal, medical), a third of the words can end
+up underlined. The underline can be switched off in the Style menu.
+
+**D12. Whole phrases or nothing.** A short multi-word term is selected as a unit. Cost:
+without part-of-speech tagging a "phrase" is any run of content words, so some are
+verb-noun fragments ("readers take"), and phrases cover fewer distinct ideas per budget.
+
+**D13. Meaning preservation is enforced by an independent audit.** The audit shares word
+lists with the engine but not its selection logic, runs in `npm test`, and must report
+zero findings. It verifies known distortion patterns only; it is not a proof.
+
 **D10. Re-analyse on every change.** Analysis is linear in text length apart from one
 sort, and takes milliseconds for article-length text, so there is no cache to invalidate.
 Book-length input should move to a Web Worker.
@@ -165,6 +209,10 @@ Book-length input should move to a Web Worker.
 
 - English only in practice (D9).
 - Sentence splitting and plural folding are simple rules and make occasional mistakes.
+- Terms used only once in a short text are the engine's main blind spot: at the default
+  amount it covers 79% of the annotated key words in the evaluation set.
+- Negation handling is local: it reaches four words past the negation and does not
+  understand double negatives, sarcasm or scope across clauses.
 - Paragraphs with no distinctive terms receive only the single guaranteed highlight.
 - The adapter decides what is a block from tag names, not computed styles. Pages that
   build paragraphs from styled `<span>`s will be read as one long block.
@@ -175,7 +223,9 @@ Book-length input should move to a Web Worker.
 ## Testing
 
 `npm test` runs the engine's unit tests in Node (tokenising, term folding, sentence
-breaks, stopword exclusion, heading handling, density bounds, paragraph coverage, phrase
-merging, range validity, determinism). The DOM adapter and UI were checked in headless
+breaks, stopword exclusion, heading handling, density bounds, paragraph coverage, whole
+phrases, range validity, determinism), the context-tier tests, and the evaluation set with
+its meaning audit and recall floors. `npm run eval` prints the full evaluation report;
+see [EVALUATION.md](EVALUATION.md). The DOM adapter and UI were checked in headless
 Chromium by hand-written script during development; automated browser tests are a roadmap
 item.
