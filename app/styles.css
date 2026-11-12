@@ -1,0 +1,192 @@
+:root {
+  --bg: #fbfaf7;
+  --surface: #ffffff;
+  --text: #1b1b1a;
+  --muted: #6e6d69; /* 4.9:1 on --bg: dimmed text stays readable (WCAG 1.4.3) */
+  --line: #dddad2;
+  --accent: #1b1b1a;
+  --yellow: #ffe45c;
+  --green: #b9f0a8;
+  --pink: #ffc4dd;
+  --blue: #b6dcff;
+  --ui: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --serif: Charter, 'Bitstream Charter', 'Iowan Old Style', Georgia, serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #17181a;
+    --surface: #202124;
+    --text: #ebe9e4;
+    --muted: #96948f; /* 5.8:1 on --bg */
+    --line: #37383c;
+    --accent: #ebe9e4;
+  }
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 15px/1.4 var(--ui);
+}
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+.grow { flex: 1; }
+
+/* ---- Toolbar ---- */
+.bar {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 20px;
+  padding: 10px 16px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--line);
+}
+.brand { font-weight: 650; letter-spacing: -0.01em; margin-right: auto; }
+.brand-mark { background: var(--yellow); color: #1b1b1a; padding: 1px 5px; border-radius: 3px; }
+
+.btn {
+  font: inherit;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 7px 12px;
+  cursor: pointer;
+}
+.btn:hover { border-color: var(--muted); }
+.btn.primary { background: var(--accent); color: var(--bg); border-color: var(--accent); font-weight: 600; }
+:focus-visible { outline: 2px solid #2f6fed; outline-offset: 2px; }
+
+.switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font: inherit;
+  font-weight: 600;
+  color: var(--text);
+  background: none;
+  border: 0;
+  padding: 6px 4px;
+  cursor: pointer;
+}
+.switch-track {
+  width: 38px;
+  height: 22px;
+  border-radius: 11px;
+  background: var(--line);
+  padding: 2px;
+  transition: background 0.15s;
+}
+.switch-thumb {
+  display: block;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--surface);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.3);
+  transition: transform 0.15s;
+}
+.switch[aria-checked='true'] .switch-track { background: var(--accent); }
+.switch[aria-checked='true'] .switch-thumb { transform: translateX(16px); background: var(--bg); }
+.switch:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.amount { display: inline-flex; align-items: center; gap: 8px; color: var(--muted); font-size: 13px; }
+.amount input { width: 120px; accent-color: var(--accent); }
+
+.menu { position: relative; }
+.menu summary { list-style: none; cursor: pointer; padding: 7px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+.menu summary::-webkit-details-marker { display: none; }
+.menu-panel {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  width: 220px;
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.12);
+}
+.menu fieldset { border: 0; margin: 0; padding: 0; display: grid; gap: 6px; }
+.menu legend { padding: 0; margin-bottom: 4px; color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; }
+.swatches { display: flex; gap: 10px; }
+.swatches input { position: absolute; opacity: 0; }
+.swatch { display: block; width: 26px; height: 26px; border-radius: 50%; border: 1px solid rgb(0 0 0 / 0.25); cursor: pointer; }
+.swatches input:checked + .swatch { outline: 2px solid var(--text); outline-offset: 2px; }
+.swatches input:focus-visible + .swatch { outline: 2px solid #2f6fed; outline-offset: 2px; }
+.swatch[data-c='yellow'] { background: var(--yellow); }
+.swatch[data-c='green'] { background: var(--green); }
+.swatch[data-c='pink'] { background: var(--pink); }
+.swatch[data-c='blue'] { background: var(--blue); }
+
+/* ---- Reading column ---- */
+main { max-width: 68ch; margin: 0 auto; padding: 20px 16px 96px; font-size: 19px; }
+.stats { margin: 0 0 20px; color: var(--muted); font: 13px/1.4 var(--ui); font-variant-numeric: tabular-nums; }
+.notice { font: 14px/1.5 var(--ui); padding: 12px 14px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+
+.reader { font-family: var(--serif); line-height: 1.65; overflow-wrap: break-word; }
+.reader h1, .reader h2 { font-family: var(--ui); line-height: 1.2; letter-spacing: -0.015em; text-wrap: balance; }
+.reader h1 { font-size: 1.7em; margin: 0 0 0.8em; }
+.reader h2 { font-size: 1.15em; margin: 1.8em 0 0.5em; }
+.reader p { margin: 0 0 1.1em; }
+
+/* ---- The highlight itself ---- */
+.reader[data-color='yellow'] { --mark: var(--yellow); }
+.reader[data-color='green'] { --mark: var(--green); }
+.reader[data-color='pink'] { --mark: var(--pink); }
+.reader[data-color='blue'] { --mark: var(--blue); }
+
+.reader[data-mark='marker'] ::highlight(marker-highlight) {
+  background-color: var(--mark);
+  color: #1b1b1a;
+}
+.reader[data-mark='underline'] ::highlight(marker-highlight) {
+  color: var(--text);
+  text-decoration: underline 0.14em var(--text);
+  text-underline-offset: 0.18em;
+}
+/* Focus mode: everything that is not marked recedes, but stays legible. Headings keep
+   full strength because they are the page's own signposts. */
+.reader.is-on[data-dim='true'] :is(p, li, blockquote) { color: var(--muted); }
+
+/* ---- Composer ---- */
+dialog {
+  width: min(680px, calc(100vw - 32px));
+  padding: 20px;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+}
+dialog::backdrop { background: rgb(0 0 0 / 0.45); }
+dialog h2 { margin: 0 0 12px; font-size: 18px; }
+dialog textarea {
+  width: 100%;
+  padding: 12px;
+  font: 15px/1.5 var(--ui);
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  resize: vertical;
+}
+.privacy { margin: 8px 0 14px; color: var(--muted); font-size: 13px; }
+.actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.file input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.file:focus-within { outline: 2px solid #2f6fed; outline-offset: 2px; }
+
+@media (max-width: 560px) {
+  main { font-size: 18px; }
+  .amount input { width: 90px; }
+  .menu-panel { right: auto; left: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .switch-track, .switch-thumb { transition: none; }
+}

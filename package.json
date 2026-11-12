@@ -1,0 +1,13 @@
+{
+  "name": "marker-highlight",
+  "version": "0.1.0",
+  "description": "Highlights only the most important words in a text so you can skim it faster. Runs entirely on-device.",
+  "type": "module",
+  "private": true,
+  "license": "MIT",
+  "scripts": {
+    "start": "node scripts/serve.mjs",
+    "test": "node --test"
+  },
+  "engines": { "node": ">=20" }
+}
