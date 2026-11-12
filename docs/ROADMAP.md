@@ -14,7 +14,8 @@ whether to move on.
 
 ## Phase 1: make the highlights trustworthy
 
-The product is only as good as what it marks, and that is currently unmeasured.
+The product is only as good as what it marks, and so far that is measured only on a small
+set written by the engine's author.
 
 - **Independent evaluation set.** Today's set ([EVALUATION.md](EVALUATION.md)) is six
   texts annotated by the engine's author. Grow it to 30–50 texts of different kinds,
