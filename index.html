@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <title>Marker Highlight</title>
+    <meta name="description" content="Highlights only the most important words so you can skim any text faster. Runs entirely on your device." />
+    <link rel="stylesheet" href="app/styles.css" />
+    <script type="module" src="app/app.js"></script>
+  </head>
+  <body>
+    <header class="bar">
+      <span class="brand"><span class="brand-mark">Marker</span> Highlight</span>
+
+      <button id="toggle" class="switch" type="button" role="switch" aria-checked="true" title="Toggle highlights (H)">
+        <span class="switch-track" aria-hidden="true"><span class="switch-thumb"></span></span>
+        <span>Highlight</span>
+      </button>
+
+      <label class="amount" title="How much of the text to highlight ([ and ])">
+        <span>Fewer</span>
+        <input id="density" type="range" min="5" max="40" step="5" value="20" aria-label="Amount highlighted" />
+        <span>More</span>
+      </label>
+
+      <details class="menu" id="style-menu">
+        <summary>Style</summary>
+        <div class="menu-panel">
+          <label class="check"><input id="dim" type="checkbox" /> Dim everything else</label>
+          <fieldset>
+            <legend>Mark</legend>
+            <label><input type="radio" name="mark" value="marker" checked /> Marker</label>
+            <label><input type="radio" name="mark" value="underline" /> Underline</label>
+          </fieldset>
+          <fieldset>
+            <legend>Colour</legend>
+            <div class="swatches">
+              <label title="Yellow"><input type="radio" name="color" value="yellow" checked /><span class="swatch" data-c="yellow"></span><span class="sr">Yellow</span></label>
+              <label title="Green"><input type="radio" name="color" value="green" /><span class="swatch" data-c="green"></span><span class="sr">Green</span></label>
+              <label title="Pink"><input type="radio" name="color" value="pink" /><span class="swatch" data-c="pink"></span><span class="sr">Pink</span></label>
+              <label title="Blue"><input type="radio" name="color" value="blue" /><span class="swatch" data-c="blue"></span><span class="sr">Blue</span></label>
+            </div>
+          </fieldset>
+        </div>
+      </details>
+
+      <button id="new-text" class="btn" type="button">New text</button>
+    </header>
+
+    <main>
+      <p id="unsupported" class="notice" hidden>
+        This browser does not support the CSS Custom Highlight API, so highlights cannot be drawn.
+        Please update to a current version of Chrome, Edge, Safari or Firefox.
+      </p>
+      <p id="stats" class="stats" aria-live="polite"></p>
+      <article id="reader" class="reader" data-mark="marker" data-color="yellow"></article>
+    </main>
+
+    <dialog id="composer" aria-labelledby="composer-title">
+      <form method="dialog">
+        <h2 id="composer-title">What do you want to read?</h2>
+        <textarea id="source" rows="12" placeholder="Paste an article, report or notes here…" aria-label="Text to read"></textarea>
+        <p class="privacy">Your text is analysed in this tab only. Nothing is uploaded or stored.</p>
+        <div class="actions">
+          <label class="btn file">Open a file<input id="file" type="file" accept=".txt,.md,text/plain,text/markdown" /></label>
+          <button id="use-sample" class="btn" type="button">Use the sample</button>
+          <span class="grow"></span>
+          <button class="btn" value="cancel">Cancel</button>
+          <button id="read" class="btn primary" value="read">Highlight it</button>
+        </div>
+      </form>
+    </dialog>
+  </body>
+</html>
