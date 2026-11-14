@@ -87,6 +87,8 @@ at 238 words per minute. [13]
 | Highlight the original text in place. No summary, no rewriting. | Readers need to look back and read on; replacing the text removes that. Skimming works on the full text. | [1] [3] |
 | No one-word-at-a-time mode and no partial-word bolding. | Both were measured and do not help. | [1] [2] |
 | Mark whole words and short phrases chosen for meaning. | The mark's value comes from *what* is marked, not from a typographic trick. | [2] [9] |
+| A second, quieter tier: negations, contrasts, qualifiers and in-between words are underlined. | Marks pull the eye and marked text is what gets remembered, so a skim path that skips "not" teaches the opposite of the text. These words are rarely keywords, so they get their own tier instead of competing for the marker budget. | [8] [9] [11] |
+| Short multi-word terms are highlighted whole or not at all. | A partial term ("stools" for "black stools") is a wrong signal, and inappropriate marking is reported to hurt comprehension. | [12] |
 | Highlights are sparse: 20% by default, never more than 40%. | Isolation only works while marks are rare. The exact default is a product judgment; no study gives a number. | [8] [9] |
 | Every paragraph of 12+ words gets at least one highlight. | Unaided skimmers drop off down the page and through each paragraph; a path across the whole text counters that. | [3] [4] [7] |
 | First sentences of paragraphs get a small scoring boost. | Authors put key ideas early, and skimmers look there first. | [3] [5] |
@@ -94,7 +96,7 @@ at 238 words per minute. [13]
 | Headings are never highlighted. | They are already signals; marking them spends the sparse budget on what is already visible. | [11] |
 | Unmarked text stays fully legible. "Dim everything else" is opt-in and keeps 4.5:1 contrast. | Skimming does not support inference; readers must be able to drop into full reading at any point. | [3] [14] |
 | One prominent on/off switch, with a keyboard shortcut (`H`). | Highlights pull the eye even when unwanted, so removing them must be instant. Turning off restores the page exactly. | [9] |
-| An underline style in addition to marker colours. | Colour must not be the only way information is shown; pale marker colours are weak for some low-vision and colour-blind readers. | [15] |
+| An underline style for tier 1 in addition to marker colours (tier 2 then becomes dotted). | Colour must not be the only way information is shown; pale marker colours are weak for some low-vision and colour-blind readers. | [15] |
 | Reading column capped at about 68 characters, generous line height. | Long lines make it harder to find the next line. | [16] |
 | The status line shows word count, full reading time and share highlighted. It does not promise a "time saved". | Full reading time is grounded in a measured rate. The speed-up from this tool has not been measured, so no number is claimed. | [13] |
 | The sample text says where skimming stops. | Honest framing: this is a first pass for finding what deserves a full read. | [1] [3] |

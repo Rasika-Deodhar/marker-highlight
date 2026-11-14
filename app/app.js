@@ -12,13 +12,14 @@ const reader = $('reader');
 const toggle = $('toggle');
 const density = $('density');
 const dim = $('dim');
+const context = $('context');
 const stats = $('stats');
 const composer = $('composer');
 const source = $('source');
 
 const highlighter = createHighlighter(reader);
 const supported = isSupported();
-const prefs = { on: true, density: 20, dim: false, mark: 'marker', color: 'yellow', ...loadPrefs() };
+const prefs = { on: true, density: 20, context: true, dim: false, mark: 'marker', color: 'yellow', ...loadPrefs() };
 
 function loadPrefs() {
   try {
@@ -65,6 +66,7 @@ function update() {
   density.value = prefs.density;
   density.disabled = !on;
   dim.checked = prefs.dim;
+  context.checked = prefs.context;
   reader.classList.toggle('is-on', on);
   reader.dataset.dim = prefs.dim;
   reader.dataset.mark = prefs.mark;
@@ -75,13 +77,14 @@ function update() {
   }
 
   // The engine always runs (it is cheap) so the word count is available either way.
-  const result = highlighter.apply({ density: prefs.density / 100 });
+  const result = highlighter.apply({ density: prefs.density / 100, context: prefs.context });
   if (!on) highlighter.clear();
 
-  const { words, highlighted } = result.stats;
+  const { words, highlighted, context: underlined } = result.stats;
   const minutes = Math.max(1, Math.round(words / WORDS_PER_MINUTE));
   const parts = [`${words.toLocaleString()} words`, `about ${minutes} min to read in full`];
   if (on && words) parts.push(`${highlighted.toLocaleString()} highlighted (${Math.round((highlighted / words) * 100)}%)`);
+  if (on && underlined) parts.push(`${underlined.toLocaleString()} underlined for context`);
   stats.textContent = words ? parts.join(' · ') : '';
   savePrefs();
 }
@@ -94,6 +97,7 @@ function set(patch) {
 toggle.addEventListener('click', () => set({ on: !prefs.on }));
 density.addEventListener('input', () => set({ density: Number(density.value) }));
 dim.addEventListener('change', () => set({ dim: dim.checked }));
+context.addEventListener('change', () => set({ context: context.checked }));
 for (const input of document.querySelectorAll('input[name="mark"], input[name="color"]')) {
   input.addEventListener('change', () => set({ [input.name]: input.value }));
 }
