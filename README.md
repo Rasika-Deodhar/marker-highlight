@@ -3,12 +3,16 @@
 Highlights only the most important words in a text, so you can skim it quickly without
 leaving the original for a summary. Everything runs on your device.
 
+**[Try the live demo](https://rasika-deodhar.github.io/marker-highlight/)** — nothing to install.
+
 ![Marker Highlight showing an article with its key words highlighted](docs/screenshot.png)
 
 It starts as a small web app and is built so the same engine can run as a browser
 extension later, behind a toggle that reads a page only when you ask it to.
 
 ## Run it
+
+The quickest way is the [live demo](https://rasika-deodhar.github.io/marker-highlight/). To run it locally:
 
 Requires Node 20+ (only to serve the files; there are no dependencies to install).
 
