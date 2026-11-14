@@ -19,7 +19,7 @@ const source = $('source');
 
 const highlighter = createHighlighter(reader);
 const supported = isSupported();
-const prefs = { on: true, density: 20, context: true, dim: false, mark: 'marker', color: 'yellow', ...loadPrefs() };
+const prefs = { on: true, density: 20, context: true, dim: false, mark: 'marker', color: 'yellow', theme: 'auto', ...loadPrefs() };
 
 function loadPrefs() {
   try {
@@ -71,7 +71,9 @@ function update() {
   reader.dataset.dim = prefs.dim;
   reader.dataset.mark = prefs.mark;
   reader.dataset.color = prefs.color;
-  for (const name of ['mark', 'color']) {
+  if (prefs.theme === 'light' || prefs.theme === 'dark') document.documentElement.dataset.theme = prefs.theme;
+  else delete document.documentElement.dataset.theme;
+  for (const name of ['mark', 'color', 'theme']) {
     const input = document.querySelector(`input[name="${name}"][value="${prefs[name]}"]`);
     if (input) input.checked = true;
   }
@@ -98,7 +100,7 @@ toggle.addEventListener('click', () => set({ on: !prefs.on }));
 density.addEventListener('input', () => set({ density: Number(density.value) }));
 dim.addEventListener('change', () => set({ dim: dim.checked }));
 context.addEventListener('change', () => set({ context: context.checked }));
-for (const input of document.querySelectorAll('input[name="mark"], input[name="color"]')) {
+for (const input of document.querySelectorAll('input[name="mark"], input[name="color"], input[name="theme"]')) {
   input.addEventListener('change', () => set({ [input.name]: input.value }));
 }
 

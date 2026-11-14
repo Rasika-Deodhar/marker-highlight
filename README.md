@@ -32,6 +32,7 @@ npm test
 - **Highlight** switch (or `H`): turn highlights on and off.
 - **Fewer / More** (or `[` and `]`): how much is highlighted, from 5% to 40%.
 - **Style**: marker or underline, colour, "underline context words" and "dim everything else".
+- **Theme** (in the Style menu): light, dark, or match your system. Your choice is remembered.
 
 There are two kinds of mark. **Marker** is for the important words themselves. A thinner
 **underline** is for words that are not keywords but that the meaning depends on: "not",

@@ -12,12 +12,24 @@
   --ui: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   --serif: Charter, 'Bitstream Charter', 'Iowan Old Style', Georgia, serif;
 }
+/* Dark theme. "Auto" (no data-theme) follows the system; the Style menu can force either. */
+:root { color-scheme: light dark; }
+:root[data-theme='light'] { color-scheme: light; }
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --bg: #17181a;
+  --surface: #202124;
+  --text: #ebe9e4;
+  --muted: #96948f; /* 5.8:1 on --bg */
+  --line: #37383c;
+  --accent: #ebe9e4;
+}
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme='light']) {
     --bg: #17181a;
     --surface: #202124;
     --text: #ebe9e4;
-    --muted: #96948f; /* 5.8:1 on --bg */
+    --muted: #96948f;
     --line: #37383c;
     --accent: #ebe9e4;
   }
