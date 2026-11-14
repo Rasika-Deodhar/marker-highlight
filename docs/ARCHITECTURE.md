@@ -2,7 +2,8 @@
 
 ## Goals and constraints
 
-- **Lightweight.** No framework, no dependencies, no build step. Under 1,000 lines of source.
+- **Lightweight.** No framework, no build step, nothing to install. About 1,400 lines of
+  source, plus one bundled library (pdf.js) that loads only when a PDF is opened.
 - **Faithful.** The text is never altered, and following the marks must not change what a
   sentence says.
 - **Private.** Text is analysed where it is displayed. Nothing is sent or stored.
@@ -42,6 +43,7 @@ flowchart TD
 |---|---|---|---|
 | Core engine | `src/core/*` | Strings, offsets | DOM, browser, UI, storage |
 | DOM adapter | `src/dom/highlighter.js` | Any DOM subtree, the Highlight API | Where the DOM came from, UI state |
+| File import | `src/import/*`, `third_party/pdfjs` | File formats | The engine, the reader, UI state |
 | Host shell | `app/*`, `index.html` | Controls, preferences, text input | How importance is computed |
 
 The dependency direction is strictly downward. The contract between adapter and core is
@@ -205,6 +207,24 @@ zero findings. It verifies known distortion patterns only; it is not a proof.
 sort, and takes milliseconds for article-length text, so there is no cache to invalidate.
 Book-length input should move to a Web Worker.
 
+**D14. Files are converted to text, not displayed as-is.** Every format (PDF, Word,
+HTML, Markdown, plain text) is turned into the same thing: blocks of text with headings
+marked, which the reader renders as ordinary headings and paragraphs. The importers live
+in `src/import`, one module per format behind `importFile(file)`, and are loaded only when
+a file of that format is opened. A PDF therefore reflows like an article instead of
+showing its pages. That loses layout, figures and tables, but the product is about
+skimming prose, and one reading surface keeps highlighting, themes and the future
+extension identical for every source. PDF paragraphs and headings are inferred from line
+positions and font sizes (`pdf-layout.js`, pure and unit-tested); running headers, footers
+and page numbers are dropped.
+
+**D15. pdf.js is bundled, not installed or fetched from a CDN.** Parsing PDF is the one
+job not worth writing by hand. The two pdf.js files are checked in under
+`third_party/pdfjs` (about 1.7 MB, Apache-2.0) and fetched by the browser only when a PDF
+is first opened. This keeps D5 (no build step, nothing to `npm install`) and the privacy
+promise: opening a file makes no request to any other origin. Word files need no library:
+`.docx` is a zip of XML, read with the platform's `DecompressionStream`.
+
 ## Known limitations
 
 - English only in practice (D9).
@@ -216,8 +236,14 @@ Book-length input should move to a Web Worker.
 - Paragraphs with no distinctive terms receive only the single guaranteed highlight.
 - The adapter decides what is a block from tag names, not computed styles. Pages that
   build paragraphs from styled `<span>`s will be read as one long block.
-- The app accepts plain text and Markdown-style `#` headings only; no URL, HTML or PDF
-  import yet.
+- PDF structure is inferred from geometry (D14), so it can be wrong: a paragraph split by
+  a page break is only rejoined when the continuation starts in lower case, multi-column
+  pages rely on the order the PDF stores its text in, and tables come out as loose lines.
+  Scanned PDFs have no text; there is no OCR. PDFs that depend on predefined CJK character
+  maps are not supported, as those maps are not bundled.
+- Word import reads the main document body only: no footnotes, headers, text boxes or
+  comments. The old binary `.doc` format is not supported.
+- No import from a URL yet.
 - Effect on reading speed and comprehension is unmeasured.
 
 ## Testing
@@ -226,6 +252,8 @@ Book-length input should move to a Web Worker.
 breaks, stopword exclusion, heading handling, density bounds, paragraph coverage, whole
 phrases, range validity, determinism), the context-tier tests, and the evaluation set with
 its meaning audit and recall floors. `npm run eval` prints the full evaluation report;
-see [EVALUATION.md](EVALUATION.md). The DOM adapter and UI were checked in headless
+see [EVALUATION.md](EVALUATION.md). The importers' pure parts (format detection, Markdown,
+PDF layout, Word XML and zip reading) are unit-tested too. The DOM adapter, UI and real
+PDF, Word and HTML files were checked in headless
 Chromium by hand-written script during development; automated browser tests are a roadmap
 item.

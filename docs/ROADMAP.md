@@ -5,6 +5,7 @@ whether to move on.
 
 ## Phase 0: the app (this release, v0.1)
 
+- Open or drop a PDF, Word (.docx), Markdown, HTML or text file, all read on-device.
 - Paste or open text; important words are highlighted in place, and the words that
   protect their meaning (negations, qualifiers, in-between words) are underlined.
 - Evaluation set with an independent meaning audit, run by the tests.
@@ -27,8 +28,8 @@ set written by the engine's author.
   double negatives.
 - **Languages.** `Intl.Segmenter` tokenising; stopword and common-word lists for the next
   three languages by demand; detect language from the text.
-- **More inputs.** Paste rich text with its headings and lists preserved; open PDF and
-  EPUB; load a URL where cross-origin rules allow.
+- **More inputs.** Paste rich text with its headings and lists preserved; open
+  EPUB; OCR for scanned PDFs; load a URL where cross-origin rules allow.
 - **Automated browser tests** for the DOM adapter and the UI.
 - Installable offline (PWA manifest and service worker).
 

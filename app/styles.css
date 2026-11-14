@@ -5,6 +5,7 @@
   --muted: #6e6d69; /* 4.9:1 on --bg: dimmed text stays readable (WCAG 1.4.3) */
   --line: #dddad2;
   --accent: #1b1b1a;
+  --danger: #b3261e; /* 6.5:1 on --bg */
   --yellow: #ffe45c;
   --green: #b9f0a8;
   --pink: #ffc4dd;
@@ -23,6 +24,7 @@
   --muted: #96948f; /* 5.8:1 on --bg */
   --line: #37383c;
   --accent: #ebe9e4;
+  --danger: #ff8a80; /* 7.6:1 on --bg */
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) {
@@ -32,6 +34,7 @@
     --muted: #96948f;
     --line: #37383c;
     --accent: #ebe9e4;
+    --danger: #ff8a80;
   }
 }
 
@@ -200,6 +203,24 @@ dialog textarea {
   resize: vertical;
 }
 .privacy { margin: 8px 0 14px; color: var(--muted); font-size: 13px; }
+.import-status { margin: 0 0 14px; padding: 8px 10px; font-size: 13px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); }
+.import-status.is-error { border-color: var(--danger); color: var(--danger); }
+dialog[aria-busy='true'] .actions .btn { pointer-events: none; opacity: 0.6; }
+/* A file is being dragged over the window. */
+body.is-dropping::after {
+  content: 'Drop the file to open it';
+  position: fixed;
+  inset: 12px;
+  z-index: 10;
+  display: grid;
+  place-items: center;
+  font: 600 18px var(--ui);
+  color: var(--text);
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  border: 2px dashed var(--muted);
+  border-radius: 14px;
+  pointer-events: none;
+}
 .actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .file input { position: absolute; opacity: 0; width: 1px; height: 1px; }
 .file:focus-within { outline: 2px solid #2f6fed; outline-offset: 2px; }
