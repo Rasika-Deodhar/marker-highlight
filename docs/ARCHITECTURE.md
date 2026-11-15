@@ -2,11 +2,12 @@
 
 ## Goals and constraints
 
-- **Lightweight.** No framework, no build step, nothing to install. About 1,400 lines of
+- **Lightweight.** No framework, no build step, nothing to install. About 2,200 lines of
   source, plus one bundled library (pdf.js) that loads only when a PDF is opened.
 - **Faithful.** The text is never altered, and following the marks must not change what a
   sentence says.
-- **Private.** Text is analysed where it is displayed. Nothing is sent or stored.
+- **Private.** Text is analysed where it is displayed. Nothing is sent or stored, except
+  the single word a reader chooses to look up in the dictionary (D17).
 - **Extension-ready.** The app is the first host; a browser extension is the second. Moving
   to the extension must not require rewriting the engine or the painting code.
 - **Reversible.** Turning highlights off restores the page exactly.
@@ -43,7 +44,9 @@ flowchart TD
 |---|---|---|---|
 | Core engine | `src/core/*` | Strings, offsets | DOM, browser, UI, storage |
 | DOM adapter | `src/dom/highlighter.js` | Any DOM subtree, the Highlight API | Where the DOM came from, UI state |
-| File import | `src/import/*`, `third_party/pdfjs` | File formats | The engine, the reader, UI state |
+| File import | `src/import/*`, `third_party/pdfjs` | File formats (PDF, EPUB, Word, HTML, Markdown) | The engine, the reader, UI state |
+| Read aloud | `src/speech/*` | Blocks and their marks, a speech synthesiser | DOM, UI |
+| Dictionary | `src/dictionary/lookup.js` | A word, two public APIs | The text, DOM, UI |
 | Host shell | `app/*`, `index.html` | Controls, preferences, text input | How importance is computed |
 
 The dependency direction is strictly downward. The contract between adapter and core is
@@ -225,6 +228,30 @@ is first opened. This keeps D5 (no build step, nothing to `npm install`) and the
 promise: opening a file makes no request to any other origin. Word files need no library:
 `.docx` is a zip of XML, read with the platform's `DecompressionStream`.
 
+**D16. Read aloud speaks one sentence per utterance, and "quick read" speaks the marks.**
+Speech uses the browser's Web Speech API, so there is no audio to ship or generate.
+`src/speech/queue.js` turns the highlighter's blocks into a queue of chunks: every
+sentence, or in quick read only the marker and context ranges of each sentence (headings
+are always read whole). Sentence-sized utterances keep the "now reading" mark in step with
+the voice without word-boundary events, which many voices never send; they let a speed
+change apply at once by restarting the sentence; and they avoid browsers cutting off long
+utterances. Quick read includes the context tier on purpose: hearing "not laziness" rather
+than "laziness" is the same meaning guarantee the underlines give the eye. Pause is
+implemented as cancel-and-remember because `speechSynthesis.pause()` is unreliable across
+browsers. On-device voices are preferred, since network voices send the text to the
+browser vendor.
+
+**D17. The dictionary is opt-in and sends one word.** A definition needs data the app does
+not have, so this is the only feature that uses the network. It is off by default, and a
+lookup sends the clicked word (or a selected phrase of up to five words) to Wiktionary's
+and Wikipedia's public REST APIs, never the surrounding text. Wiktionary gives the short
+meaning; Wikipedia gives the article link and, where there is no dictionary sense, its
+opening lines. Responses are treated as untrusted: definitions arrive as HTML and only
+their text is used, and the card is built with `textContent`.
+
+**D18. The speaking and lookup marks are Custom Highlights too.** Like the marker, they
+never change the DOM, so they cannot disturb the offsets the other highlights use.
+
 ## Known limitations
 
 - English only in practice (D9).
@@ -243,7 +270,14 @@ promise: opening a file makes no request to any other origin. Word files need no
   maps are not supported, as those maps are not bundled.
 - Word import reads the main document body only: no footnotes, headers, text boxes or
   comments. The old binary `.doc` format is not supported.
-- No import from a URL yet.
+- No import from a URL yet. EPUBs protected by DRM cannot be read.
+- Read aloud depends on the voices the browser and operating system provide; some
+  platforms offer few, and maximum speed varies by voice. The mark follows sentences, not
+  individual words.
+- The dictionary is English only, needs a connection, and looks words up as written, so
+  an inflected form may get a thin "plural of…" entry. Wikipedia's article for a common
+  word is sometimes about something else with that name. Words cannot be looked up from
+  the keyboard alone.
 - Effect on reading speed and comprehension is unmeasured.
 
 ## Testing
@@ -253,7 +287,9 @@ breaks, stopword exclusion, heading handling, density bounds, paragraph coverage
 phrases, range validity, determinism), the context-tier tests, and the evaluation set with
 its meaning audit and recall floors. `npm run eval` prints the full evaluation report;
 see [EVALUATION.md](EVALUATION.md). The importers' pure parts (format detection, Markdown,
-PDF layout, Word XML and zip reading) are unit-tested too. The DOM adapter, UI and real
+PDF layout, Word XML, EPUB reading order and zip reading) are unit-tested too, as are the
+speech queue and player (against a fake synthesiser) and the dictionary lookup (against a
+fake `fetch`; it has not been run against the live Wikimedia APIs from the test environment). The DOM adapter, UI and real
 PDF, Word and HTML files were checked in headless
 Chromium by hand-written script during development; automated browser tests are a roadmap
 item.

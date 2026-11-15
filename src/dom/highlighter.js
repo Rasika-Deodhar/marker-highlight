@@ -9,6 +9,8 @@ import { analyze } from '../core/analyze.js';
 
 export const HIGHLIGHT_NAME = 'marker-highlight'; // tier 1: the important words
 export const CONTEXT_NAME = 'marker-highlight-context'; // tier 2: words that keep them truthful
+export const SPEAKING_NAME = 'marker-highlight-speaking'; // the sentence being read aloud
+export const LOOKUP_NAME = 'marker-highlight-lookup'; // the word open in the dictionary
 
 const SKIP = new Set([
   'SCRIPT', 'STYLE', 'NOSCRIPT', 'TEMPLATE', 'CODE', 'PRE', 'KBD', 'SAMP', 'TEXTAREA', 'INPUT',
@@ -91,11 +93,13 @@ function segmentAt(block, offset) {
  * @param {Element} root  The subtree to read and highlight.
  */
 export function createHighlighter(root) {
+  let last = { blocks: [], result: { blocks: [] } };
   return {
     /** Analyse the subtree and paint highlights. Returns the engine's stats. */
     apply(options) {
       const blocks = collectBlocks(root);
       const result = analyze(blocks, options);
+      last = { blocks, result };
       const highlight = new Highlight();
       const context = new Highlight();
       result.blocks.forEach((marks, i) => {
@@ -109,6 +113,32 @@ export function createHighlighter(root) {
     clear() {
       CSS.highlights.delete(HIGHLIGHT_NAME);
       CSS.highlights.delete(CONTEXT_NAME);
+    },
+    /** The blocks from the last apply(), with their marks: what a reader (or a voice) follows. */
+    segments() {
+      return last.blocks.map((block, i) => ({
+        el: block.el,
+        text: block.text,
+        kind: block.kind,
+        ranges: last.result.blocks[i]?.ranges ?? [],
+        context: last.result.blocks[i]?.context ?? [],
+      }));
+    },
+    /**
+     * Mark character ranges of one block as the place currently being read aloud.
+     * @returns {Range|null} the first range, for scrolling it into view
+     */
+    markSpeaking(blockIndex, ranges) {
+      const block = last.blocks[blockIndex];
+      if (!block || !ranges.length) return null;
+      const domRanges = ranges.map(([start, end]) => toDomRange(block, start, end));
+      const speaking = new Highlight(...domRanges);
+      speaking.priority = 1; // drawn over the marker and context highlights
+      CSS.highlights.set(SPEAKING_NAME, speaking);
+      return domRanges[0];
+    },
+    clearSpeaking() {
+      CSS.highlights.delete(SPEAKING_NAME);
     },
   };
 }

@@ -3,6 +3,8 @@
 
 import { createHighlighter, isSupported } from '../src/dom/highlighter.js';
 import { ACCEPT, importFile } from '../src/import/index.js';
+import { setupDictionary } from './dictionary.js';
+import { setupListen } from './listen.js';
 import { SAMPLE } from './sample.js';
 
 const WORDS_PER_MINUTE = 238; // average adult silent reading rate for non-fiction (Brysbaert, 2019)
@@ -23,7 +25,10 @@ let docName = ''; // name of the open file, shown with the stats
 
 const highlighter = createHighlighter(reader);
 const supported = isSupported();
-const prefs = { on: true, density: 20, context: true, dim: false, mark: 'marker', color: 'yellow', theme: 'auto', ...loadPrefs() };
+const prefs = {
+  on: true, density: 20, context: true, dim: false, mark: 'marker', color: 'yellow', theme: 'auto',
+  speechMode: 'all', rate: 1, voice: '', dictionary: false, ...loadPrefs(),
+};
 
 function loadPrefs() {
   try {
@@ -64,6 +69,8 @@ function renderText(text, { guessHeadings = true, name = '' } = {}) {
     el.textContent = content;
     return el;
   });
+  listen.stop();
+  dictionary.close();
   reader.replaceChildren(...nodes);
   window.scrollTo(0, 0);
   update();
@@ -82,6 +89,8 @@ function update() {
   reader.dataset.color = prefs.color;
   if (prefs.theme === 'light' || prefs.theme === 'dark') document.documentElement.dataset.theme = prefs.theme;
   else delete document.documentElement.dataset.theme;
+  themeToggle.setAttribute('aria-label', `Switch to ${effectiveTheme() === 'dark' ? 'light' : 'dark'} theme`);
+  themeToggle.title = themeToggle.getAttribute('aria-label');
   for (const name of ['mark', 'color', 'theme']) {
     const input = document.querySelector(`input[name="${name}"][value="${prefs[name]}"]`);
     if (input) input.checked = true;
@@ -97,6 +106,8 @@ function update() {
   if (on && words) parts.push(`${highlighted.toLocaleString()} highlighted (${Math.round((highlighted / words) * 100)}%)`);
   if (on && underlined) parts.push(`${underlined.toLocaleString()} underlined for context`);
   stats.textContent = words ? parts.join(' · ') : '';
+  listen.refresh();
+  dictionary.refresh();
   savePrefs();
 }
 
@@ -104,6 +115,16 @@ function set(patch) {
   Object.assign(prefs, patch);
   update();
 }
+
+const listen = setupListen({ highlighter, prefs, set });
+const dictionary = setupDictionary({ reader, prefs, set });
+
+// Light/dark switch. "Match system" stays available in the Style menu.
+const themeToggle = $('theme-toggle');
+const systemDark = window.matchMedia('(prefers-color-scheme: dark)');
+const effectiveTheme = () => (prefs.theme === 'light' || prefs.theme === 'dark' ? prefs.theme : systemDark.matches ? 'dark' : 'light');
+themeToggle.addEventListener('click', () => set({ theme: effectiveTheme() === 'dark' ? 'light' : 'dark' }));
+systemDark.addEventListener('change', () => update());
 
 toggle.addEventListener('click', () => set({ on: !prefs.on }));
 density.addEventListener('input', () => set({ density: Number(density.value) }));
@@ -114,24 +135,26 @@ for (const input of document.querySelectorAll('input[name="mark"], input[name="c
 }
 
 document.addEventListener('keydown', (e) => {
-  if (e.metaKey || e.ctrlKey || e.altKey || e.target.closest('input, textarea, dialog')) return;
+  if (e.metaKey || e.ctrlKey || e.altKey || e.target.closest('input, textarea, select, dialog')) return;
   const step = Number(density.step);
   if (e.key === 'h' || e.key === 'H') set({ on: !prefs.on });
   else if (e.key === '[' && prefs.on) set({ density: Math.max(Number(density.min), prefs.density - step) });
   else if (e.key === ']' && prefs.on) set({ density: Math.min(Number(density.max), prefs.density + step) });
 });
 
-// Close the style menu when focus or a click lands outside it.
-const menu = $('style-menu');
-document.addEventListener('click', (e) => {
-  if (!menu.contains(e.target)) menu.open = false;
-});
-menu.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape') {
-    menu.open = false;
-    menu.querySelector('summary').focus();
-  }
-});
+// Close a menu when a click lands outside it or another menu opens.
+const menus = [...document.querySelectorAll('details.menu')];
+for (const menu of menus) {
+  document.addEventListener('click', (e) => {
+    if (!menu.contains(e.target)) menu.open = false;
+  });
+  menu.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && menu.open) {
+      menu.open = false;
+      menu.querySelector('summary').focus();
+    }
+  });
+}
 
 function setImportStatus(message, isError = false) {
   importStatus.textContent = message;

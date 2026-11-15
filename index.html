@@ -59,7 +59,36 @@
         </div>
       </details>
 
-      <button id="new-text" class="btn" type="button" title="Paste text or open a PDF, Word, Markdown, HTML or text file">New text</button>
+      <details class="menu" id="listen-menu">
+        <summary>Listen</summary>
+        <div class="menu-panel">
+          <div class="transport">
+            <button id="speak-toggle" class="btn primary" type="button">Play</button>
+            <button id="speak-prev" class="btn" type="button" aria-label="Previous sentence" title="Previous sentence">&#x2190;</button>
+            <button id="speak-next" class="btn" type="button" aria-label="Next sentence" title="Next sentence">&#x2192;</button>
+            <button id="speak-stop" class="btn" type="button">Stop</button>
+          </div>
+          <fieldset>
+            <legend>Read aloud</legend>
+            <label><input type="radio" name="speechMode" value="all" checked /> Everything</label>
+            <label title="Reads only the highlighted and underlined words, the way your eye skims"><input type="radio" name="speechMode" value="quick" /> Highlights only (quick read)</label>
+            <p id="quick-note" class="hint" hidden>Highlights are off, so everything is read.</p>
+          </fieldset>
+          <label class="field"><span>Speed <output id="rate-out" for="rate">1×</output></span>
+            <input id="rate" type="range" min="0.5" max="3" step="0.1" value="1" /></label>
+          <label class="field"><span>Voice</span><select id="voice"></select></label>
+          <p id="voice-note" class="hint" hidden>This is an online voice: your browser sends it the text it reads. Voices not marked “online” work on your device.</p>
+        </div>
+      </details>
+
+      <button id="dictionary" class="btn toggle" type="button" aria-pressed="false" title="Click a word to see its meaning. Sends only that word to Wiktionary and Wikipedia.">Dictionary</button>
+
+      <button id="theme-toggle" class="btn icon" type="button">
+        <svg class="icon-moon" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M20.4 14.3A8.5 8.5 0 0 1 9.7 3.6a.6.6 0 0 0-.8-.7 9.6 9.6 0 1 0 12.2 12.2.6.6 0 0 0-.7-.8Z"/></svg>
+        <svg class="icon-sun" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><circle cx="12" cy="12" r="4.4" fill="currentColor"/><path stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.5 1.5M17.2 17.2l1.5 1.5M5.3 18.7l1.5-1.5M17.2 6.8l1.5-1.5"/></svg>
+      </button>
+
+      <button id="new-text" class="btn" type="button" title="Paste text or open a PDF, EPUB, Word, Markdown, HTML or text file">New text</button>
     </header>
 
     <main>
@@ -71,12 +100,20 @@
       <article id="reader" class="reader" data-mark="marker" data-color="yellow"></article>
     </main>
 
+    <aside id="dict" class="dict" role="dialog" aria-labelledby="dict-term" hidden>
+      <header>
+        <strong id="dict-term"></strong>
+        <button id="dict-close" class="dict-close" type="button" aria-label="Close dictionary">&times;</button>
+      </header>
+      <div id="dict-body" aria-live="polite"></div>
+    </aside>
+
     <dialog id="composer" aria-labelledby="composer-title">
       <form method="dialog">
         <h2 id="composer-title">What do you want to read?</h2>
         <textarea id="source" rows="12" placeholder="Paste an article, report or notes here…" aria-label="Text to read"></textarea>
         <p class="privacy">
-          Or open or drop a file: PDF, Word (.docx), Markdown, HTML or plain text.
+          Or open or drop a file: PDF, EPUB, Word (.docx), Markdown, HTML or plain text.
           Your text is analysed in this tab only. Nothing is uploaded or stored.
         </p>
         <p id="import-status" class="import-status" role="status" hidden></p>
