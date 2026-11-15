@@ -6,6 +6,13 @@
     <meta name="color-scheme" content="light dark" />
     <title>Marker Highlight</title>
     <meta name="description" content="Highlights only the most important words so you can skim any text faster. Runs entirely on your device." />
+    <script>
+      // Apply a saved theme before first paint so the page does not flash the wrong one.
+      try {
+        const theme = JSON.parse(localStorage.getItem('marker-highlight:prefs'))?.theme;
+        if (theme === 'light' || theme === 'dark') document.documentElement.dataset.theme = theme;
+      } catch {}
+    </script>
     <link rel="stylesheet" href="app/styles.css" />
     <script type="module" src="app/app.js"></script>
   </head>
@@ -43,10 +50,16 @@
               <label title="Blue"><input type="radio" name="color" value="blue" /><span class="swatch" data-c="blue"></span><span class="sr">Blue</span></label>
             </div>
           </fieldset>
+          <fieldset>
+            <legend>Theme</legend>
+            <label><input type="radio" name="theme" value="auto" checked /> Match system</label>
+            <label><input type="radio" name="theme" value="light" /> Light</label>
+            <label><input type="radio" name="theme" value="dark" /> Dark</label>
+          </fieldset>
         </div>
       </details>
 
-      <button id="new-text" class="btn" type="button">New text</button>
+      <button id="new-text" class="btn" type="button" title="Paste text or open a PDF, Word, Markdown, HTML or text file">New text</button>
     </header>
 
     <main>
@@ -62,9 +75,13 @@
       <form method="dialog">
         <h2 id="composer-title">What do you want to read?</h2>
         <textarea id="source" rows="12" placeholder="Paste an article, report or notes here…" aria-label="Text to read"></textarea>
-        <p class="privacy">Your text is analysed in this tab only. Nothing is uploaded or stored.</p>
+        <p class="privacy">
+          Or open or drop a file: PDF, Word (.docx), Markdown, HTML or plain text.
+          Your text is analysed in this tab only. Nothing is uploaded or stored.
+        </p>
+        <p id="import-status" class="import-status" role="status" hidden></p>
         <div class="actions">
-          <label class="btn file">Open a file<input id="file" type="file" accept=".txt,.md,text/plain,text/markdown" /></label>
+          <label class="btn file">Open a file<input id="file" type="file" /></label>
           <button id="use-sample" class="btn" type="button">Use the sample</button>
           <span class="grow"></span>
           <button class="btn" value="cancel">Cancel</button>

@@ -28,10 +28,16 @@ npm test
 
 ## Use it
 
-- **New text**: paste text or open a `.txt`/`.md` file. Lines starting with `#` become headings.
+- **New text**: paste text, or open a file. You can also drop a file anywhere on the page.
+  In pasted text, lines starting with `#` become headings.
+- **Supported files**: PDF, Word (`.docx`), Markdown, HTML and plain text. Files are read
+  in your browser and never uploaded. A PDF is shown as reflowed text, not as its original
+  pages, so it reads the same as everything else. Scanned PDFs (images of pages) have no
+  text to read and need OCR first.
 - **Highlight** switch (or `H`): turn highlights on and off.
 - **Fewer / More** (or `[` and `]`): how much is highlighted, from 5% to 40%.
 - **Style**: marker or underline, colour, "underline context words" and "dim everything else".
+- **Theme** (in the Style menu): light, dark, or match your system. Your choice is remembered.
 
 There are two kinds of mark. **Marker** is for the important words themselves. A thinner
 **underline** is for words that are not keywords but that the meaning depends on: "not",

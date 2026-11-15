@@ -2,6 +2,7 @@
 // the DOM adapter. An extension popup/content script would replace this file only.
 
 import { createHighlighter, isSupported } from '../src/dom/highlighter.js';
+import { ACCEPT, importFile } from '../src/import/index.js';
 import { SAMPLE } from './sample.js';
 
 const WORDS_PER_MINUTE = 238; // average adult silent reading rate for non-fiction (Brysbaert, 2019)
@@ -16,10 +17,13 @@ const context = $('context');
 const stats = $('stats');
 const composer = $('composer');
 const source = $('source');
+const fileInput = $('file');
+const importStatus = $('import-status');
+let docName = ''; // name of the open file, shown with the stats
 
 const highlighter = createHighlighter(reader);
 const supported = isSupported();
-const prefs = { on: true, density: 20, context: true, dim: false, mark: 'marker', color: 'yellow', ...loadPrefs() };
+const prefs = { on: true, density: 20, context: true, dim: false, mark: 'marker', color: 'yellow', theme: 'auto', ...loadPrefs() };
 
 function loadPrefs() {
   try {
@@ -37,8 +41,13 @@ function savePrefs() {
   }
 }
 
-/** Plain text -> headings and paragraphs. Uses textContent only, so pasted text is never parsed as HTML. */
-function renderText(text) {
+/**
+ * Plain text -> headings and paragraphs. Uses textContent only, so text is never parsed as HTML.
+ * Lines starting with # are headings. For pasted text, short unpunctuated lines are also
+ * treated as headings; imported files mark their own, so `guessHeadings` is off for them.
+ */
+function renderText(text, { guessHeadings = true, name = '' } = {}) {
+  docName = name;
   const chunks = text.replace(/\r\n?/g, '\n').split(/\n\s*\n/).map((c) => c.trim()).filter(Boolean);
   const nodes = chunks.map((chunk, i) => {
     const heading = chunk.match(/^(#{1,6})\s+(.*)$/s);
@@ -48,7 +57,7 @@ function renderText(text) {
     if (heading) {
       tag = heading[1].length === 1 ? 'h1' : 'h2';
       content = heading[2];
-    } else if (looksLikeTitle && chunks.length > 1) {
+    } else if (guessHeadings && looksLikeTitle && chunks.length > 1) {
       tag = i === 0 ? 'h1' : 'h2';
     }
     const el = document.createElement(tag);
@@ -71,7 +80,9 @@ function update() {
   reader.dataset.dim = prefs.dim;
   reader.dataset.mark = prefs.mark;
   reader.dataset.color = prefs.color;
-  for (const name of ['mark', 'color']) {
+  if (prefs.theme === 'light' || prefs.theme === 'dark') document.documentElement.dataset.theme = prefs.theme;
+  else delete document.documentElement.dataset.theme;
+  for (const name of ['mark', 'color', 'theme']) {
     const input = document.querySelector(`input[name="${name}"][value="${prefs[name]}"]`);
     if (input) input.checked = true;
   }
@@ -82,7 +93,7 @@ function update() {
 
   const { words, highlighted, context: underlined } = result.stats;
   const minutes = Math.max(1, Math.round(words / WORDS_PER_MINUTE));
-  const parts = [`${words.toLocaleString()} words`, `about ${minutes} min to read in full`];
+  const parts = [...(docName ? [docName] : []), `${words.toLocaleString()} words`, `about ${minutes} min to read in full`];
   if (on && words) parts.push(`${highlighted.toLocaleString()} highlighted (${Math.round((highlighted / words) * 100)}%)`);
   if (on && underlined) parts.push(`${underlined.toLocaleString()} underlined for context`);
   stats.textContent = words ? parts.join(' · ') : '';
@@ -98,7 +109,7 @@ toggle.addEventListener('click', () => set({ on: !prefs.on }));
 density.addEventListener('input', () => set({ density: Number(density.value) }));
 dim.addEventListener('change', () => set({ dim: dim.checked }));
 context.addEventListener('change', () => set({ context: context.checked }));
-for (const input of document.querySelectorAll('input[name="mark"], input[name="color"]')) {
+for (const input of document.querySelectorAll('input[name="mark"], input[name="color"], input[name="theme"]')) {
   input.addEventListener('change', () => set({ [input.name]: input.value }));
 }
 
@@ -122,21 +133,76 @@ menu.addEventListener('keydown', (e) => {
   }
 });
 
-$('new-text').addEventListener('click', () => {
+function setImportStatus(message, isError = false) {
+  importStatus.textContent = message;
+  importStatus.classList.toggle('is-error', isError);
+  importStatus.hidden = !message;
+}
+
+function openComposer() {
   source.value = '';
-  composer.showModal();
+  composer.returnValue = ''; // so Escape after an earlier "Highlight it" does not count as one
+  setImportStatus('');
+  if (!composer.open) composer.showModal();
   source.focus();
-});
+}
+
+let importing = 0;
+/** Read a file in any supported format and show it. Progress and errors appear in the composer. */
+async function openFile(file) {
+  if (!composer.open) openComposer();
+  const run = ++importing;
+  composer.setAttribute('aria-busy', 'true');
+  setImportStatus(`Reading ${file.name}…`);
+  try {
+    const { text, structured } = await importFile(file, (message) => run === importing && setImportStatus(message));
+    if (run !== importing) return; // a newer file was opened meanwhile
+    renderText(text, { guessHeadings: !structured, name: file.name });
+    composer.close('file');
+  } catch (err) {
+    if (run === importing) setImportStatus(err?.message || `"${file.name}" could not be read.`, true);
+  } finally {
+    if (run === importing) composer.removeAttribute('aria-busy');
+  }
+}
+
+$('new-text').addEventListener('click', openComposer);
 $('use-sample').addEventListener('click', () => {
   source.value = SAMPLE;
 });
-$('file').addEventListener('change', async (e) => {
+fileInput.accept = ACCEPT;
+fileInput.addEventListener('change', (e) => {
   const file = e.target.files[0];
-  if (file) source.value = await file.text();
   e.target.value = '';
+  if (file) openFile(file);
 });
 composer.addEventListener('close', () => {
+  importing++; // abandon any file still being read
   if (composer.returnValue === 'read' && source.value.trim()) renderText(source.value);
+});
+
+// Drop a file anywhere on the page to open it.
+const hasFiles = (e) => [...(e.dataTransfer?.types ?? [])].includes('Files');
+let dragDepth = 0;
+window.addEventListener('dragenter', (e) => {
+  if (!hasFiles(e)) return;
+  dragDepth++;
+  document.body.classList.add('is-dropping');
+});
+window.addEventListener('dragleave', (e) => {
+  if (!hasFiles(e)) return;
+  if (--dragDepth <= 0) document.body.classList.remove('is-dropping');
+});
+window.addEventListener('dragover', (e) => {
+  if (hasFiles(e)) e.preventDefault(); // otherwise the browser navigates to the file
+});
+window.addEventListener('drop', (e) => {
+  if (!hasFiles(e)) return;
+  e.preventDefault();
+  dragDepth = 0;
+  document.body.classList.remove('is-dropping');
+  const file = e.dataTransfer.files[0];
+  if (file) openFile(file);
 });
 
 if (!supported) {
