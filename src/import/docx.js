@@ -1,5 +1,7 @@
 // Word (.docx) -> text. A .docx is a zip of XML files; the body is word/document.xml.
-// Uses the platform's DecompressionStream, so there is no zip or XML library to ship.
+// Read with the platform's DecompressionStream (see zip.js), so there is no library to ship.
+
+import { unzipEntry } from './zip.js';
 
 export async function docxToText(data) {
   let xml;
@@ -38,41 +40,4 @@ function entity(_, name) {
   if (name in named) return named[name];
   const code = name[1] === 'x' || name[1] === 'X' ? parseInt(name.slice(2), 16) : parseInt(name.slice(1), 10);
   return Number.isFinite(code) && code > 0 && code <= 0x10ffff ? String.fromCodePoint(code) : '';
-}
-
-/** Read one file out of a zip archive as UTF-8 text, or null if it is not there. */
-export async function unzipEntry(bytes, name) {
-  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
-  // The end-of-central-directory record is at the end, before an optional comment.
-  let eocd = -1;
-  for (let i = bytes.length - 22; i >= Math.max(0, bytes.length - 22 - 0xffff); i--) {
-    if (view.getUint32(i, true) === 0x06054b50) {
-      eocd = i;
-      break;
-    }
-  }
-  if (eocd < 0) throw new Error('Not a zip archive');
-  const count = view.getUint16(eocd + 10, true);
-  let at = view.getUint32(eocd + 16, true);
-  const decoder = new TextDecoder();
-  for (let i = 0; i < count; i++) {
-    if (view.getUint32(at, true) !== 0x02014b50) throw new Error('Corrupt zip archive');
-    const method = view.getUint16(at + 10, true);
-    const compressedSize = view.getUint32(at + 20, true);
-    const nameLength = view.getUint16(at + 28, true);
-    const extraLength = view.getUint16(at + 30, true);
-    const commentLength = view.getUint16(at + 32, true);
-    const localOffset = view.getUint32(at + 42, true);
-    const entryName = decoder.decode(bytes.subarray(at + 46, at + 46 + nameLength));
-    if (entryName === name) {
-      const start = localOffset + 30 + view.getUint16(localOffset + 26, true) + view.getUint16(localOffset + 28, true);
-      const body = bytes.subarray(start, start + compressedSize);
-      if (method === 0) return decoder.decode(body);
-      if (method !== 8) throw new Error('Unsupported zip compression');
-      const stream = new Blob([body]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
-      return await new Response(stream).text();
-    }
-    at += 46 + nameLength + extraLength + commentLength;
-  }
-  return null;
 }
