@@ -3,22 +3,23 @@
 
 import { markdownToText } from './markdown.js';
 
-export const ACCEPT = '.pdf,.docx,.txt,.text,.md,.markdown,.html,.htm,application/pdf,text/plain,text/markdown,text/html';
-export const FORMATS_LABEL = 'PDF, Word (.docx), Markdown, HTML or plain text';
+export const ACCEPT = '.pdf,.epub,.docx,.txt,.text,.md,.markdown,.html,.htm,application/pdf,application/epub+zip,text/plain,text/markdown,text/html';
+export const FORMATS_LABEL = 'PDF, EPUB, Word (.docx), Markdown, HTML or plain text';
 
 const BY_EXTENSION = {
-  pdf: 'pdf', docx: 'docx', md: 'markdown', markdown: 'markdown', mdown: 'markdown',
+  pdf: 'pdf', epub: 'epub', docx: 'docx', md: 'markdown', markdown: 'markdown', mdown: 'markdown',
   html: 'html', htm: 'html', xhtml: 'html', txt: 'text', text: 'text', log: 'text',
 };
 const BY_TYPE = {
   'application/pdf': 'pdf',
+  'application/epub+zip': 'epub',
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'docx',
   'text/markdown': 'markdown',
   'text/html': 'html',
   'application/xhtml+xml': 'html',
 };
 
-/** @returns {'pdf'|'docx'|'markdown'|'html'|'text'|null} */
+/** @returns {'pdf'|'epub'|'docx'|'markdown'|'html'|'text'|null} */
 export function detectFormat(name = '', type = '') {
   const ext = name.includes('.') ? name.split('.').pop().toLowerCase() : '';
   const mime = type.split(';')[0].trim().toLowerCase();
@@ -44,6 +45,16 @@ export async function importFile(file, onProgress) {
       onProgress?.('Opening PDF…');
       const { pdfToText } = await import('./pdf.js');
       text = await pdfToText(await file.arrayBuffer(), (n, total) => onProgress?.(`Reading page ${n} of ${total}…`));
+      break;
+    }
+    case 'epub': {
+      onProgress?.('Opening book…');
+      const [{ epubToText }, { htmlToText }] = await Promise.all([import('./epub.js'), import('./html.js')]);
+      text = await epubToText(
+        await file.arrayBuffer(),
+        (xhtml) => htmlToText(xhtml, { xhtml: true }),
+        (n, total) => onProgress?.(`Reading chapter ${n} of ${total}…`),
+      );
       break;
     }
     case 'docx': {

@@ -6,6 +6,9 @@
   --line: #dddad2;
   --accent: #1b1b1a;
   --danger: #b3261e; /* 6.5:1 on --bg */
+  --link: #1a56c4;
+  --speak: #2f6fed;
+  --speak-bg: #cfe0ff;
   --yellow: #ffe45c;
   --green: #b9f0a8;
   --pink: #ffc4dd;
@@ -25,6 +28,9 @@
   --line: #37383c;
   --accent: #ebe9e4;
   --danger: #ff8a80; /* 7.6:1 on --bg */
+  --link: #8ab4ff;
+  --speak: #8ab4ff;
+  --speak-bg: #24447d;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) {
@@ -35,6 +41,9 @@
     --line: #37383c;
     --accent: #ebe9e4;
     --danger: #ff8a80;
+    --link: #8ab4ff;
+    --speak: #8ab4ff;
+    --speak-bg: #24447d;
   }
 }
 
@@ -74,6 +83,17 @@ body {
   cursor: pointer;
 }
 .btn:hover { border-color: var(--muted); }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn.toggle[aria-pressed='true'] { background: var(--accent); color: var(--bg); border-color: var(--accent); }
+.btn.icon { display: inline-grid; place-items: center; padding: 7px 9px; }
+/* The theme button shows where it leads: a moon in light, a sun in dark. */
+.icon-sun { display: none; }
+:root[data-theme='dark'] .icon-sun { display: block; }
+:root[data-theme='dark'] .icon-moon { display: none; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .icon-sun { display: block; }
+  :root:not([data-theme='light']) .icon-moon { display: none; }
+}
 .btn.primary { background: var(--accent); color: var(--bg); border-color: var(--accent); font-weight: 600; }
 :focus-visible { outline: 2px solid #2f6fed; outline-offset: 2px; }
 
@@ -131,6 +151,17 @@ body {
 }
 .menu fieldset { border: 0; margin: 0; padding: 0; display: grid; gap: 6px; }
 .menu legend { padding: 0; margin-bottom: 4px; color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; }
+.menu-panel .hint { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.4; }
+.menu-panel .field { display: grid; gap: 4px; }
+.menu-panel .field > span { display: flex; justify-content: space-between; color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; }
+.menu-panel .field output { color: var(--text); text-transform: none; letter-spacing: 0; font-variant-numeric: tabular-nums; }
+.menu-panel .field input[type='range'] { width: 100%; accent-color: var(--accent); }
+.menu-panel select { width: 100%; font: inherit; font-size: 13px; color: var(--text); background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 5px 6px; }
+#listen-menu .menu-panel { width: 270px; }
+#listen-menu[data-state='playing'] summary { border-color: var(--speak); box-shadow: inset 0 0 0 1px var(--speak); }
+.transport { display: flex; gap: 6px; }
+.transport .btn { padding: 6px 10px; }
+.transport .primary { flex: 1; }
 .swatches { display: flex; gap: 10px; }
 .swatches input { position: absolute; opacity: 0; }
 .swatch { display: block; width: 26px; height: 26px; border-radius: 50%; border: 1px solid rgb(0 0 0 / 0.25); cursor: pointer; }
@@ -177,6 +208,43 @@ main { max-width: 68ch; margin: 0 auto; padding: 20px 16px 96px; font-size: 19px
 .reader[data-mark='underline'] ::highlight(marker-highlight-context) {
   text-decoration: underline dotted 0.09em var(--text);
 }
+/* The sentence being read aloud, and the word open in the dictionary. */
+.reader ::highlight(marker-highlight-speaking) {
+  background-color: var(--speak-bg);
+  color: var(--text);
+}
+.reader ::highlight(marker-highlight-lookup) {
+  background-color: var(--speak-bg);
+  color: var(--text);
+  text-decoration: underline 0.12em var(--speak);
+}
+.reader[data-dictionary='true'] :is(p, h1, h2) { cursor: help; }
+
+/* ---- Dictionary card ---- */
+.dict {
+  position: absolute;
+  z-index: 3;
+  width: min(340px, calc(100vw - 16px));
+  padding: 12px 14px;
+  font: 14px/1.45 var(--ui);
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.18);
+}
+.dict header { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+.dict header strong { font-size: 16px; overflow-wrap: anywhere; }
+.dict-close { font: inherit; font-size: 20px; line-height: 1; color: var(--muted); background: none; border: 0; padding: 0 2px; cursor: pointer; }
+.dict-def { margin: 0 0 6px; }
+.dict-def em { color: var(--muted); }
+.dict-loading { color: var(--muted); }
+.dict-error { color: var(--danger); }
+.dict-links { margin: 8px 0 0; font-size: 13px; }
+.dict-links a { color: var(--link); }
+.dict-note, .dict-source { color: var(--muted); }
+.dict-source { margin-top: 4px; font-size: 12px; }
+
 /* Focus mode: everything that is not marked recedes, but stays legible. Headings keep
    full strength because they are the page's own signposts. */
 .reader.is-on[data-dim='true'] :is(p, li, blockquote) { color: var(--muted); }
@@ -228,7 +296,9 @@ body.is-dropping::after {
 @media (max-width: 560px) {
   main { font-size: 18px; }
   .amount input { width: 90px; }
-  .menu-panel { right: auto; left: 0; }
+  /* Panels span the toolbar's width so they cannot run off a narrow screen. */
+  .menu { position: static; }
+  .menu-panel, #listen-menu .menu-panel { left: 8px; right: 8px; top: calc(100% + 4px); width: auto; }
 }
 @media (prefers-reduced-motion: reduce) {
   .switch-track, .switch-thumb { transition: none; }

@@ -5,13 +5,17 @@ import { deflateRawSync } from 'node:zlib';
 import { detectFormat } from '../src/import/index.js';
 import { markdownToText } from '../src/import/markdown.js';
 import { layoutToText } from '../src/import/pdf-layout.js';
-import { documentXmlToText, docxToText, unzipEntry } from '../src/import/docx.js';
+import { documentXmlToText, docxToText } from '../src/import/docx.js';
+import { epubToText, readingOrder } from '../src/import/epub.js';
+import { unzipEntry } from '../src/import/zip.js';
 
 test('detectFormat: by extension first, then MIME type', () => {
   assert.equal(detectFormat('Report.PDF', ''), 'pdf');
   assert.equal(detectFormat('notes.md', 'text/plain'), 'markdown');
   assert.equal(detectFormat('page.htm', ''), 'html');
   assert.equal(detectFormat('essay.docx', ''), 'docx');
+  assert.equal(detectFormat('novel.epub', ''), 'epub');
+  assert.equal(detectFormat('book', 'application/epub+zip'), 'epub');
   assert.equal(detectFormat('download', 'application/pdf'), 'pdf');
   assert.equal(detectFormat('data.csv', 'text/csv'), 'text');
   assert.equal(detectFormat('README', ''), 'text');
@@ -169,4 +173,46 @@ test('docxToText: reads word/document.xml out of the archive', async () => {
   assert.equal(await unzipEntry(bytes, 'missing.xml'), null);
   await assert.rejects(docxToText(new TextEncoder().encode('not a zip at all, just some text').buffer), /Word document/);
   await assert.rejects(docxToText(zip([['other.xml', '<x/>']]).buffer), /Word document/);
+});
+
+const OPF = `<?xml version="1.0"?><package xmlns="http://www.idpf.org/2007/opf"><manifest>
+  <item id="nav" href="nav.xhtml" media-type="application/xhtml+xml" properties="nav"/>
+  <item id="c2" href="text/ch%202.xhtml" media-type="application/xhtml+xml"/>
+  <item id="c1" href='text/ch1.xhtml' media-type="application/xhtml+xml"/>
+  <item id="notes" href="../notes.xhtml" media-type="application/xhtml+xml"/>
+  <item id="css" href="style.css" media-type="text/css"/>
+  <item id="cover" href="cover.jpg" media-type="image/jpeg"/>
+</manifest><spine>
+  <itemref idref="cover"/><itemref idref="nav"/><itemref idref="c1"/><itemref idref="c2"/>
+  <itemref idref="notes" linear="no"/>
+</spine></package>`;
+
+test('readingOrder: spine order, resolved against the package folder; nav and non-linear items skipped', () => {
+  assert.deepEqual(readingOrder(OPF, 'OEBPS/content.opf'), ['OEBPS/text/ch1.xhtml', 'OEBPS/text/ch 2.xhtml']);
+  assert.deepEqual(readingOrder(OPF, 'content.opf'), ['text/ch1.xhtml', 'text/ch 2.xhtml']);
+});
+
+test('epubToText: reads the chapters in spine order', async () => {
+  const container = '<container><rootfiles><rootfile full-path="OEBPS/content.opf" media-type="application/oebps-package+xml"/></rootfiles></container>';
+  const book = zip([
+    ['mimetype', 'application/epub+zip', 0],
+    ['META-INF/container.xml', container],
+    ['OEBPS/content.opf', OPF],
+    ['OEBPS/text/ch 2.xhtml', '<p>Second.</p>'],
+    ['OEBPS/text/ch1.xhtml', '<p>First.</p>'],
+    ['OEBPS/nav.xhtml', '<p>Contents</p>'],
+  ]);
+  const stripTags = (xhtml) => xhtml.replace(/<[^>]+>/g, '');
+  const progress = [];
+  assert.equal(await epubToText(book.buffer, stripTags, (n, total) => progress.push(`${n}/${total}`)), 'First.\n\nSecond.');
+  assert.deepEqual(progress, ['1/2', '2/2']);
+  await assert.rejects(epubToText(zip([['other.txt', 'x']]).buffer, stripTags), /EPUB/);
+  await assert.rejects(epubToText(new Uint8Array(40).buffer, stripTags), /EPUB/);
+  const locked = zip([
+    ['META-INF/container.xml', container],
+    ['META-INF/encryption.xml', '<encryption/>'],
+    ['OEBPS/content.opf', OPF],
+    ['OEBPS/text/ch1.xhtml', ''],
+  ]);
+  await assert.rejects(epubToText(locked.buffer, stripTags), /copy-protected/);
 });

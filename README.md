@@ -1,7 +1,7 @@
 # Marker Highlight
 
 Highlights only the most important words in a text, so you can skim it quickly without
-leaving the original for a summary. Everything runs on your device.
+leaving the original for a summary. Your text is analysed on your device and never uploaded.
 
 **[Try the live demo](https://rasika-deodhar.github.io/marker-highlight/)** — nothing to install.
 
@@ -30,14 +30,35 @@ npm test
 
 - **New text**: paste text, or open a file. You can also drop a file anywhere on the page.
   In pasted text, lines starting with `#` become headings.
-- **Supported files**: PDF, Word (`.docx`), Markdown, HTML and plain text. Files are read
+- **Supported files**: PDF, EPUB, Word (`.docx`), Markdown, HTML and plain text. Files are read
   in your browser and never uploaded. A PDF is shown as reflowed text, not as its original
   pages, so it reads the same as everything else. Scanned PDFs (images of pages) have no
-  text to read and need OCR first.
+  text to read and need OCR first. Copy-protected (DRM) EPUBs cannot be opened.
 - **Highlight** switch (or `H`): turn highlights on and off.
 - **Fewer / More** (or `[` and `]`): how much is highlighted, from 5% to 40%.
 - **Style**: marker or underline, colour, "underline context words" and "dim everything else".
-- **Theme** (in the Style menu): light, dark, or match your system. Your choice is remembered.
+- **Light/dark**: the moon/sun button in the toolbar switches theme. "Match system" is in
+  the Style menu. Your choice is remembered.
+- **Listen**: reads the text aloud and marks the sentence being spoken so you can follow it.
+  - *Everything* reads the full text. *Highlights only (quick read)* reads just the
+    highlighted and underlined words, the way your eye skims, so you hear the gist.
+  - Speed goes from 0.5× to 3×, and you can pick the voice and step back or forward a
+    sentence. Playback starts from what is on screen.
+  - Voices come from your browser. Ones marked "online" send the spoken text to the
+    browser's vendor; on-device voices are chosen by default.
+- **Dictionary**: turn it on, then click a word (or select a short phrase) to see a brief
+  meaning in a card above it, with a link to its Wikipedia article. Press Escape or click
+  elsewhere to carry on reading.
+
+## Privacy
+
+Your text is analysed, and files are read, inside your browser tab. Nothing is uploaded or
+stored, with two exceptions that you control:
+
+- **Dictionary** (off by default): looking up a word sends that one word, not your text,
+  to Wiktionary and Wikipedia.
+- **Listen** with a voice marked "online": the browser sends the text it speaks to its
+  vendor's speech service. On-device voices do not.
 
 There are two kinds of mark. **Marker** is for the important words themselves. A thinner
 **underline** is for words that are not keywords but that the meaning depends on: "not",
